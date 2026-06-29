@@ -1,23 +1,47 @@
 package main
 
 import (
-	//"flag"
+	"flag"
 	"fmt"
 	"os"
-	//"os/user"
-	//"path/filepath"
-	//"runtime"
+	"strings"
 )
 
 func main() {
-	hostname, err := os.Hostname()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error retrieving hostname:", err)
-		return
+	format := flag.String("format", "console", "output format: console or json")
+	flag.Parse()
+
+	switch strings.ToLower(*format) {
+	case "console", "text", "terminal":
+		setReportRenderer(newConsoleRenderer(os.Stdout))
+	case "json":
+		setReportRenderer(newJSONRenderer(os.Stdout))
+	default:
+		fmt.Fprintf(os.Stderr, "unsupported format %q; use console or json\n", *format)
+		os.Exit(2)
 	}
 
-	fmt.Println("System Information:")
-	fmt.Println("")
-	fmt.Println("Hostname:", hostname)
-}
+	startReport("System Information", sampleInterval)
 
+	samples := collectSamples(sampleInterval)
+
+	printSystem(samples)
+	printProcessor(samples)
+	printMemory()
+	printDisks(samples)
+	printNetwork(samples)
+	printPatchManagement()
+	printSecurityPosture()
+	printServices()
+	printNetworkExposure()
+	printSoftwareInventory()
+	printUserInventory()
+	printHardwareHealth()
+	printContainerVirtualizationInventory()
+	printOperationalInventory()
+
+	if err := finishReport(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
